@@ -7,6 +7,7 @@ Simple, header only library for the collection of metrics.
 ```cpp
 #include "mtr/metrics.cpp"
 
+#include <chrono>
 #include <thread>
 
 void foo() {
