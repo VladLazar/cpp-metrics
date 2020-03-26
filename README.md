@@ -11,9 +11,9 @@ Simple, header only library for the collection of metrics.
 #include <thread>
 
 void foo() {
-    METRICS_RECORD_BLOCK("foo", std::chrono::microseconds);
+    METRICS_RECORD_BLOCK("foo");
     for (int i = 0; i <= 100; ++i) {
-        METRICS_RECORD_BLOCK("foo_loop", std::chrono::nanoseconds);
+        METRICS_RECORD_BLOCK("foo_loop");
         std::this_thread::sleep_for(std::chrono::nanoseconds(10));
     }
 }
