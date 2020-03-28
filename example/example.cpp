@@ -1,18 +1,3 @@
-# cpp-metrics
-
-## Description
-Simple, header only library for the collection of metrics.
-
-## Usage with cmake
-Call `add_subdirectory(<path-to-cpp-metrics>)` and link the library to your
-target with `target_link_libraries(<your-target> PUBLIC cpp-metrics)`.
-
-Note that the collection of metrics must be toggled at compile time by defining
-the `COLLECT_METRICS` macro. If the said macro is not defined `METRICS_RECORD_BLOCK`
-will expand to nothing. Compile time definitions can be added with cmake: `add_compile_definitions(COLLECT_METRICS=1)`.
-
-### Example
-```cpp
 #include "mtr/metrics.hpp"
 
 #include <cassert>
@@ -63,5 +48,3 @@ int main() {
 
     return 0;
 }
-}
-```
