@@ -8,7 +8,9 @@
 #include <cstdint>
 #include <numeric>
 #include <stdexcept>
+#include <type_traits>
 #include <unordered_map>
+#include <iostream>
 
 #if COLLECT_METRICS
     #define METRICS_RECORD_BLOCK(metric_name)                 \
@@ -86,6 +88,9 @@ public:
     template <typename T>
     T total(const std::string &name) const;
 
+    template <typename T>
+    void dump_metrics(const std::string &name, std::ostream &stream) const;
+
 	metric_aggregator(metric_aggregator const &) = delete;
 	void operator=(metric_aggregator const &) = delete;
 
@@ -94,6 +99,25 @@ private:
 
 private:
 	std::unordered_map<std::string, block_recording> metrics_;
+};
+
+template <typename T>
+struct stringify_unit {
+private:
+    constexpr static auto stringify() {
+        if constexpr (std::is_same_v<T, std::chrono::nanoseconds>) {
+            return "ns";
+        } else if constexpr (std::is_same_v<T, std::chrono::microseconds>) {
+            return "us";
+        } else if constexpr (std::is_same_v<T, std::chrono::milliseconds>) {
+            return "ms";
+        } else {
+            return "s";
+        }
+    }
+
+public:
+    static constexpr auto value = stringify();
 };
 
 inline void block_recording::update(std::chrono::nanoseconds elapsed) {
@@ -211,4 +235,27 @@ inline T metric_aggregator::total(const std::string &name) const {
     return std::chrono::duration_cast<T>(nanoseconds);
 }
 
+template <typename T>
+void metric_aggregator::dump_metrics(const std::string &name, std::ostream &stream) const {
+	const auto iter = metrics_.find(name);
+	if (iter == metrics_.end()) {
+		return;
+	}
+    
+    /* If the duration provided is 'larger' than the std::chrono::seconds,
+     * default to std::chrono::seconds. */
+    if (not std::is_same_v<T, std::common_type_t<T, std::chrono::seconds>>) {
+        dump_metrics<std::chrono::seconds>(name, stream);
+        return;
+    }
+
+    constexpr auto unit = stringify_unit<T>::value;
+
+    stream << name << " metrics:" << std::endl;
+    stream << "\t" << "Entered: " << times_entered(name) << std::endl;
+    stream << "\t" << "Total: " << total<T>(name).count() << unit << std::endl;
+    stream << "\t" << "Average: " << average<T>(name).count() << unit << std::endl;
+    stream << "\t" << "Min: " << min<T>(name).count() << unit << std::endl;
+    stream << "\t" << "Max: " << max<T>(name).count() << unit << std::endl;
+}
 } // namespace mtr
