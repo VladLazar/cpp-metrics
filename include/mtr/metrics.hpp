@@ -91,6 +91,9 @@ public:
     template <typename T>
     void dump_metrics(const std::string &name, std::ostream &stream) const;
 
+    template <typename T>
+    void dump_all(std::ostream &stream) const;
+
 	metric_aggregator(metric_aggregator const &) = delete;
 	void operator=(metric_aggregator const &) = delete;
 
@@ -258,4 +261,13 @@ void metric_aggregator::dump_metrics(const std::string &name, std::ostream &stre
     stream << "\t" << "Min: " << min<T>(name).count() << unit << std::endl;
     stream << "\t" << "Max: " << max<T>(name).count() << unit << std::endl;
 }
+
+template <typename T>
+void metric_aggregator::dump_all(std::ostream &stream) const {
+    for (const auto pair : metrics_) {
+        dump_metrics<T>(pair.first, stream);
+        stream << std::endl;
+    }
+}
+
 } // namespace mtr
