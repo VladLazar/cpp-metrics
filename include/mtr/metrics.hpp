@@ -26,19 +26,20 @@
 
 namespace mtr {
 
-constexpr std::size_t MAX_RECORDINGS = 1000;
-
 class block_recording {
 public:
 	void update(std::chrono::nanoseconds elapsed);
 
 	std::size_t times_entered() const;
-	typename std::array<std::chrono::nanoseconds, MAX_RECORDINGS>::const_iterator begin() const;
-	typename std::array<std::chrono::nanoseconds, MAX_RECORDINGS>::const_iterator end() const;
+    std::chrono::nanoseconds total() const;
+    std::chrono::nanoseconds min() const;
+    std::chrono::nanoseconds max() const;
 
 private:
 	std::uint64_t times_entered_ = 0;
-	std::array<std::chrono::nanoseconds, MAX_RECORDINGS> recordings_;
+    std::chrono::nanoseconds total_ = std::chrono::nanoseconds(0);
+    std::chrono::nanoseconds min_ = std::chrono::nanoseconds::max();
+    std::chrono::nanoseconds max_ = std::chrono::nanoseconds::min();
 };
 
 class high_resolution_timer {
@@ -124,22 +125,26 @@ public:
 };
 
 inline void block_recording::update(std::chrono::nanoseconds elapsed) {
-	recordings_[times_entered_ % MAX_RECORDINGS] = elapsed;
 	++times_entered_;
+    total_ += elapsed;
+    min_ = std::min(elapsed, min_);
+    max_ = std::max(elapsed, max_);
 }
 
 inline std::size_t block_recording::times_entered() const {
 	return times_entered_;
 }
 
-inline typename std::array<std::chrono::nanoseconds, MAX_RECORDINGS>::const_iterator
-block_recording::begin() const {
-	return recordings_.cbegin();
+inline std::chrono::nanoseconds block_recording::total() const {
+    return total_;
 }
 
-inline typename std::array<std::chrono::nanoseconds, MAX_RECORDINGS>::const_iterator
-block_recording::end() const {
-    return times_entered_ >= MAX_RECORDINGS ? recordings_.cend() : recordings_.cbegin() + times_entered_;
+inline std::chrono::nanoseconds block_recording::min() const {
+    return times_entered_ > 0 ? min_ : std::chrono::nanoseconds(0);
+}
+
+inline std::chrono::nanoseconds block_recording::max() const {
+    return times_entered_ > 0 ? max_ : std::chrono::nanoseconds(0);
 }
 
 inline high_resolution_timer::high_resolution_timer()
@@ -198,7 +203,7 @@ inline T metric_aggregator::min(const std::string &name) const {
 		return T{0};
 	}
 
-	return std::chrono::duration_cast<T>(*std::min_element(iter->second.begin(), iter->second.end()));
+	return std::chrono::duration_cast<T>(iter->second.min());
 }
 
 template <typename T>
@@ -208,7 +213,7 @@ inline T metric_aggregator::max(const std::string &name) const {
 		return T{0};
 	}
 
-	return std::chrono::duration_cast<T>(*std::max_element(iter->second.begin(), iter->second.end()));
+	return std::chrono::duration_cast<T>(iter->second.max());
 }
 
 template <typename T>
@@ -223,8 +228,8 @@ inline T metric_aggregator::average(const std::string &name) const {
 		return T{0};
 	}
 
-	const auto nanoseconds = std::accumulate(iter->second.begin(), iter->second.end(), std::chrono::nanoseconds{0});
-    return std::chrono::duration_cast<T>(nanoseconds) / std::distance(iter->second.begin(), iter->second.end());
+	const auto nanoseconds = iter->second.total();
+    return std::chrono::duration_cast<T>(nanoseconds) / iter->second.times_entered();
 }
 
 template <typename T>
@@ -234,8 +239,7 @@ inline T metric_aggregator::total(const std::string &name) const {
 		return T{0};
 	}
 
-	const auto nanoseconds =  std::accumulate(iter->second.begin(), iter->second.end(), std::chrono::nanoseconds{0});
-    return std::chrono::duration_cast<T>(nanoseconds);
+    return std::chrono::duration_cast<T>(iter->second.total());
 }
 
 template <typename T>
