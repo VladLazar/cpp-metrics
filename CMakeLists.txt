@@ -9,7 +9,7 @@ option(CPP-METRICS_BUILD_TEST_AND_EXAMPLE "Build tests" OFF)
 
 add_library(cpp-metrics INTERFACE)
 target_include_directories(cpp-metrics INTERFACE include/)
-target_compile_options(cpp-metrics PRIVATE "${CPP-METRICS_CXX_FLAGS}")
+target_compile_options(cpp-metrics INTERFACE "${CPP-METRICS_CXX_FLAGS}")
 
 if(CPP-METRICS_BUILD_TEST_AND_EXAMPLE)
     # Enable collection of metrics
